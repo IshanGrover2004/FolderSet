@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub mod handler;
+pub mod jwt;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SignupRequest {

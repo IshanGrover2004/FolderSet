@@ -1,7 +1,7 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
 use bcrypt::verify;
 
-use crate::{AppState, SigninRequest, SignupRequest};
+use crate::{AppState, SigninRequest, SignupRequest, jwt::create_jwt};
 
 #[get("/")]
 async fn handle_root() -> impl Responder {
@@ -40,8 +40,10 @@ async fn handle_signin(
             println!("SignedIn successfully");
 
             // Generate JWT key here & send as response
-
-            HttpResponse::Ok().body("Successfully Signed in")
+            match create_jwt(&request.email) {
+                Ok(token) => HttpResponse::Ok().body(token),
+                Err(_) => HttpResponse::InternalServerError().body("Error creating token"),
+            }
         } else {
             HttpResponse::Unauthorized().body("Invalid Credentials")
         }
