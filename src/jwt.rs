@@ -1,23 +1,24 @@
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use chrono::{Utc, Duration};
+use uuid::Uuid;
 
 const SECRET_KEY: &[u8] = b"makerstudio"; 
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    sub: String,
+    sub: Uuid,
     exp: usize,
 }
 
-pub fn create_jwt(email: &str) -> Result<String, jsonwebtoken::errors::Error> {
+pub fn create_jwt(user_id: &Uuid) -> Result<String, jsonwebtoken::errors::Error> {
     let expiration = Utc::now()
         .checked_add_signed(Duration::days(1))
         .expect("valid timestamp")
         .timestamp();
 
     let claims = Claims {
-        sub: email.to_owned(),
+        sub: *user_id,
         exp: expiration as usize,
     };
 
