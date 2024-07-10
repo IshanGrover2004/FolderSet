@@ -1,7 +1,8 @@
+use crate::{jwt::create_jwt, AppState, SigninRequest, SignupRequest, User};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use bcrypt::verify;
-
-use crate::{AppState, SigninRequest, SignupRequest, jwt::create_jwt};
+use sqlx::PgPool;
+use uuid::Uuid;
 
 #[get("/")]
 async fn handle_root() -> impl Responder {
@@ -13,17 +14,35 @@ async fn handle_signup(
     request: web::Json<SignupRequest>,
     data: web::Data<AppState>,
 ) -> impl Responder {
-    let mut app_data = data.users.lock().expect("Unable to access the DB");
+    let pool: &PgPool = &data.pool;
 
     let hashed_password =
         bcrypt::hash(request.password.clone(), 7).expect("Unable to hash user password");
 
-    if app_data.contains_key(&request.email) {
-        HttpResponse::Conflict().body("Username already exists")
-    } else {
-        app_data.insert(request.email.clone(), hashed_password);
-        println!("SignedUp successfully");
-        HttpResponse::Ok().body("User created successfully")
+    let user_id = Uuid::new_v4();
+    let user = User {
+        id: user_id,
+        name: request.name.clone(),
+        email: request.email.clone(),
+        password: hashed_password,
+    };
+
+    let result = sqlx::query!(
+        "INSERT INTO users (id, name, email, password) VALUES ($1, $2, $3, $4)",
+        user.id,
+        user.name,
+        user.email,
+        user.password
+    )
+    .execute(pool)
+    .await;
+
+    match result {
+        Ok(_) => HttpResponse::Ok().body("User created successfully"),
+        Err(sqlx::Error::Database(err)) if err.constraint() == Some("users_email_key") => {
+            HttpResponse::Conflict().body("Email already exists")
+        }
+        Err(_) => HttpResponse::InternalServerError().body("Error creating user"),
     }
 }
 
@@ -32,22 +51,28 @@ async fn handle_signin(
     request: web::Json<SigninRequest>,
     data: web::Data<AppState>,
 ) -> impl Responder {
-    let app_data = data.users.lock().expect("Unable to access the DB");
-    if let Some(hashed_password) = app_data.get(&request.email) {
-        if verify(request.password.clone(), hashed_password)
-            .expect("Unable to compare hashed password")
-        {
-            println!("SignedIn successfully");
+    let pool: &PgPool = &data.pool;
 
-            // Generate JWT key here & send as response
-            match create_jwt(&request.email) {
-                Ok(token) => HttpResponse::Ok().body(token),
-                Err(_) => HttpResponse::InternalServerError().body("Error creating token"),
+    let user = sqlx::query_as!(
+        User,
+        "SELECT id, name, email, password FROM users WHERE email = $1",
+        request.email
+    )
+    .fetch_one(pool)
+    .await;
+
+    match user {
+        Ok(user) => {
+            if verify(&request.password, &user.password).expect("Unable to compare hashed password")
+            {
+                match create_jwt(&user.id) {
+                    Ok(token) => HttpResponse::Ok().body(token),
+                    Err(_) => HttpResponse::InternalServerError().body("Error creating token"),
+                }
+            } else {
+                HttpResponse::Unauthorized().body("Invalid Credentials")
             }
-        } else {
-            HttpResponse::Unauthorized().body("Invalid Credentials")
         }
-    } else {
-        HttpResponse::Unauthorized().body("Invalid Credentials")
+        Err(_) => HttpResponse::Unauthorized().body("Invalid Credentials"),
     }
 }
