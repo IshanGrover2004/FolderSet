@@ -25,7 +25,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone())
+            .app_data(pool.clone())
             .service(handle_root)
             .service(handle_signup)
             .service(handle_signin)
