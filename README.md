@@ -1,22 +1,21 @@
 # FolderSet Web Application
 
-FolderSet is a web application built with Rust and Actix-web for managing folders and files.
+FolderSet is a web application for managing inventories built with Rust and Actix-web.
 
 ## Prerequisites
 
 Before running the application, ensure you have the following installed:
 
-- Rust (stable)
-- Cargo (Rust's package manager)
-- Docker
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Docker](https://www.docker.com/)
 
 ## Getting Started
 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/folderset.git
-   cd folderset
+   $ git clone https://github.com/IshanGrover2004/folderset.git
+   $ cd folderset
 
    ```
 
@@ -32,21 +31,23 @@ Before running the application, ensure you have the following installed:
 3. **Start PostgreSQL with Docker Compose:**
    Run Docker Compose to start PostgreSQL and create a persistent volume for data:
 
-   ````bash
-   docker-compose up -d
-   ````
+   ```bash
+   $ docker-compose up -d
+   ```
+
    This command starts PostgreSQL in the background using the configuration specified in your docker-compose.yml file.
 
-4. **Install dependencies:**
+4. **Build the source code:**
 
    ```bash
-   cargo build
+   $ cargo build
    ```
 
 5. **Run the migrations:**
    Ensure your database schema is up-to-date by running Diesel migrations:
    ```bash
-   diesel migration run
+   $ cargo install diesel_cli
+   $ diesel migration run
    ```
 6. **Start the application:**
 
