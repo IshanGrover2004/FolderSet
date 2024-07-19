@@ -1,7 +1,6 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
 use bcrypt::verify;
 use diesel::prelude::*;
-
 use crate::{
     database::models::{User, NewUser},
     database::schema::users::dsl::*,
@@ -13,7 +12,7 @@ use crate::{
 
 #[get("/")]
 async fn handle_root() -> impl Responder {
-    HttpResponse::Ok()
+    HttpResponse::Ok().body("Welcome to the API")
 }
 
 #[post("/signup")]
@@ -27,7 +26,7 @@ pub async fn handle_signup(
         Ok(new_user) => {
             diesel::insert_into(users)
                 .values(&new_user)
-                .execute(conn) 
+                .execute(conn)
                 .expect("Error saving new user");
 
             HttpResponse::Ok().body("User created successfully")
@@ -50,11 +49,16 @@ pub async fn handle_signin(
         Ok(user) => {
             if verify(&request.password, &user.password).expect("Unable to verify password") {
                 let token = create_jwt(&user.id).expect("Error creating token");
-                HttpResponse::Ok().body(token)
+                HttpResponse::Ok().json(token)
             } else {
                 HttpResponse::Unauthorized().body("Invalid credentials")
             }
         }
         Err(_) => HttpResponse::Unauthorized().body("Invalid credentials"),
     }
+}
+
+#[get("/protected")]
+async fn protected_route() -> impl Responder {
+    HttpResponse::Ok().body("You have access to the protected route")
 }
