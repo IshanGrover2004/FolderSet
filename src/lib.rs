@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub mod database;
 pub mod handler;
 pub mod jwt;
-
+pub mod middleware;
 
 #[derive(Debug, Deserialize, Serialize ,Clone)]
 pub struct SignupRequest {
